@@ -12,6 +12,9 @@ unit_test:
 	rm -rf ebin/* src/*.beam *.beam test_src/*.beam test_ebin;
 	rm -rf  *~ */*~  erl_cra*;
 	rm -rf *_specs *_config *.log;
+#	support
+	cp ../support/src/support.app ebin;
+	erlc -o ebin ../support/src/*.erl;
 #	service
 	cp src/cluster.app ebin;
 	erlc -o ebin src/*.erl;
