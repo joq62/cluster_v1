@@ -68,20 +68,41 @@ slave_test()->
 
     [Vm1,Vm2,Vm3,Vm4]=['s1@c0','s2@c0','s3@c0','s4@c0'],
     SlaveVms= [{S1,Vm1},{S2,Vm2},{S3,Vm3},{S4,Vm4}],
-    CloneSupport="git clone https://github.com/joq62/support.git",
-    [rpc:call(Vm,os,cmd,[CloneSupport++" "++Slave++"/support"])||{Slave,Vm}<-SlaveVms],
-    [rpc:call(Vm,code,add_patha,[Slave++"/support/ebin"])||{Slave,Vm}<-SlaveVms],
-    
-    [ok,ok,ok,ok]=[rpc:call(Vm,application,start,[support])||{_Slave,Vm}<-SlaveVms],
-    [{pong,'s1@c0',support},
-     {pong,'s2@c0',support},
-     {pong,'s3@c0',support},
-     {pong,'s4@c0',support}]=[rpc:call(Vm,support,ping,[])||{_Slave,Vm}<-SlaveVms],
-    
-    
+
+    ApplicationStr="support",
+    Application=support,
+    CloneCmd="git clone https://github.com/joq62/support.git",
+    [running,running,
+     running,running]=[start_app(ApplicationStr,Application,CloneCmd,Dir,Vm)||{Dir,Vm}<-SlaveVms],
+    [ok,ok,ok,ok]=[stop_app(ApplicationStr,Application,Dir,Vm)||{Dir,Vm}<-SlaveVms],
+
+    [{error,[_]},
+     {error,[_]},
+     {error,[_]},
+     {error,[_]}]=[app_status(Vm,Application)||{_Dir,Vm}<-SlaveVms],
     
     ok.
+
+stop_app(ApplicationStr,Application,Dir,Vm)->
+    rpc:call(Vm,os,cmd,["rm -rf "++Dir++"/"++ApplicationStr]),
+    rpc:call(Vm,application,stop,[Application]),
+    rpc:call(Vm,application,unload,[Application]).
     
+
+start_app(ApplicationStr,Application,CloneCmd,Dir,Vm)->
+    rpc:call(Vm,os,cmd,[CloneCmd++" "++Dir++"/"++ApplicationStr]),
+    true=rpc:call(Vm,code,add_patha,[Dir++"/"++ApplicationStr++"/ebin"]),
+    ok=rpc:call(Vm,application,start,[Application]),
+    app_status(Vm,Application).
+
+app_status(Vm,Application)->
+    Status = case rpc:call(Vm,Application,ping,[]) of   
+		 {pong,_,Application}->
+		     running;
+		 Err ->
+		     {error,[Err]}
+	     end,
+    Status.
 %% --------------------------------------------------------------------
 %% Function:start/0 
 %% Description: Initiate the eunit tests, set upp needed processes etc
