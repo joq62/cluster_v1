@@ -73,36 +73,17 @@ slave_test()->
     Application=support,
     CloneCmd="git clone https://github.com/joq62/support.git",
     [running,running,
-     running,running]=[start_app(ApplicationStr,Application,CloneCmd,Dir,Vm)||{Dir,Vm}<-SlaveVms],
-    [ok,ok,ok,ok]=[stop_app(ApplicationStr,Application,Dir,Vm)||{Dir,Vm}<-SlaveVms],
+     running,running]=[cluster:start_app(ApplicationStr,Application,CloneCmd,Dir,Vm)||{Dir,Vm}<-SlaveVms],
+    [ok,ok,ok,ok]=[cluster:stop_app(ApplicationStr,Application,Dir,Vm)||{Dir,Vm}<-SlaveVms],
 
     [{error,[_]},
      {error,[_]},
      {error,[_]},
-     {error,[_]}]=[app_status(Vm,Application)||{_Dir,Vm}<-SlaveVms],
+     {error,[_]}]=[cluster:app_status(Vm,Application)||{_Dir,Vm}<-SlaveVms],
     
     ok.
 
-stop_app(ApplicationStr,Application,Dir,Vm)->
-    rpc:call(Vm,os,cmd,["rm -rf "++Dir++"/"++ApplicationStr]),
-    rpc:call(Vm,application,stop,[Application]),
-    rpc:call(Vm,application,unload,[Application]).
-    
 
-start_app(ApplicationStr,Application,CloneCmd,Dir,Vm)->
-    rpc:call(Vm,os,cmd,[CloneCmd++" "++Dir++"/"++ApplicationStr]),
-    true=rpc:call(Vm,code,add_patha,[Dir++"/"++ApplicationStr++"/ebin"]),
-    ok=rpc:call(Vm,application,start,[Application]),
-    app_status(Vm,Application).
-
-app_status(Vm,Application)->
-    Status = case rpc:call(Vm,Application,ping,[]) of   
-		 {pong,_,Application}->
-		     running;
-		 Err ->
-		     {error,[Err]}
-	     end,
-    Status.
 %% --------------------------------------------------------------------
 %% Function:start/0 
 %% Description: Initiate the eunit tests, set upp needed processes etc

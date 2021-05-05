@@ -19,8 +19,10 @@
 
 
 %% External exports
--export([start/0
-	
+-export([start/0,
+	 start_app/5,
+	 stop_app/4,
+	 app_status/2
 
 	]).
 
@@ -29,6 +31,32 @@
 %% ====================================================================
 %% External functions
 %% ====================================================================
+%% --------------------------------------------------------------------
+%% Function:start
+%% Description: List of test cases 
+%% Returns: non
+%% --------------------------------------------------------------------
+stop_app(ApplicationStr,Application,Dir,Vm)->
+    rpc:call(Vm,os,cmd,["rm -rf "++Dir++"/"++ApplicationStr]),
+    rpc:call(Vm,application,stop,[Application]),
+    rpc:call(Vm,application,unload,[Application]).
+    
+
+start_app(ApplicationStr,Application,CloneCmd,Dir,Vm)->
+    rpc:call(Vm,os,cmd,[CloneCmd++" "++Dir++"/"++ApplicationStr]),
+    true=rpc:call(Vm,code,add_patha,[Dir++"/"++ApplicationStr++"/ebin"]),
+    ok=rpc:call(Vm,application,start,[Application]),
+    app_status(Vm,Application).
+
+app_status(Vm,Application)->
+    Status = case rpc:call(Vm,Application,ping,[]) of   
+		 {pong,_,Application}->
+		     running;
+		 Err ->
+		     {error,[Err]}
+	     end,
+    Status.
+
 %% --------------------------------------------------------------------
 %% Function:start
 %% Description: List of test cases 

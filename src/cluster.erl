@@ -29,7 +29,11 @@
 %% --------------------------------------------------------------------
 
 % OaM related
--export([boot/0]).
+-export([boot/0,
+	 start_app/5,
+	 stop_app/4,
+	 app_status/2
+	]).
 
 -export([start/0,
 	 stop/0,
@@ -54,6 +58,15 @@ boot()->
 start()-> gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
 stop()-> gen_server:call(?MODULE, {stop},infinity).
 
+
+start_app(ApplicationStr,Application,CloneCmd,Dir,Vm)-> 
+    gen_server:call(?MODULE, {start_app,ApplicationStr,Application,CloneCmd,Dir,Vm},infinity).
+
+stop_app(ApplicationStr,Application,Dir,Vm)-> 
+    gen_server:call(?MODULE, {stop_app,ApplicationStr,Application,Dir,Vm},infinity).
+
+app_status(Vm,Application)-> 
+    gen_server:call(?MODULE, {app_status,Vm,Application},infinity).
 
 ping()-> 
     gen_server:call(?MODULE, {ping},infinity).
@@ -89,6 +102,17 @@ init([]) ->
 %%          {stop, Reason, Reply, State}   | (terminate/2 is called)
 %%          {stop, Reason, State}            (aterminate/2 is called)
 %% --------------------------------------------------------------------
+
+handle_call({start_app,ApplicationStr,Application,CloneCmd,Dir,Vm},_From,State) ->
+    Reply=cluster_lib:start_app(ApplicationStr,Application,CloneCmd,Dir,Vm),
+    {reply, Reply, State};
+handle_call({stop_app,ApplicationStr,Application,Dir,Vm},_From,State) ->
+    Reply=cluster_lib:stop_app(ApplicationStr,Application,Dir,Vm),
+    {reply, Reply, State};
+handle_call({app_status,Vm,Application},_From,State) ->
+    Reply=cluster_lib:app_status(Vm,Application),
+    {reply, Reply, State};
+
 handle_call({ping},_From,State) ->
     Reply={pong,node(),?MODULE},
     {reply, Reply, State};
