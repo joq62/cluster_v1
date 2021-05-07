@@ -2,12 +2,18 @@
 %%% @author  : Joq Erlang
 %%% @doc: : 
 %%% Manage Computers
-%%% 
+%%% Install Cluster
+%%% Install cluster
+%%% Data-{HostId,Ip,SshPort,Uid,Pwd}
+%%% available_hosts()-> [{HostId,Ip,SshPort,Uid,Pwd},..]
+%%% install_leader_host({HostId,Ip,SshPort,Uid,Pwd})->ok|{error,Err}
+%%% cluster_status()->[{running,WorkingNodes},{not_running,NotRunningNodes}]
+
 %%% Created : 
 %%% -------------------------------------------------------------------
 -module(cluster).  
-
 -behaviour(gen_server).
+
 %% --------------------------------------------------------------------
 %% Include files
 %% --------------------------------------------------------------------
@@ -28,7 +34,23 @@
 %% Definitions 
 %% --------------------------------------------------------------------
 
+%% --------------------------------------------------------------------
+%% Function: available_hosts()
+%% Description: Based on hosts.config file checks which hosts are avaible
+%% Returns: List({HostId,Ip,SshPort,Uid,Pwd}
+%% --------------------------------------------------------------------
+
+
+
+
+
 % OaM related
+-export([
+	 install/0,
+	 available_hosts/0
+	]).
+
+
 -export([boot/0,
 	 start_app/5,
 	 stop_app/4,
@@ -58,6 +80,10 @@ boot()->
 start()-> gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
 stop()-> gen_server:call(?MODULE, {stop},infinity).
 
+install()-> 
+    gen_server:call(?MODULE, {install},infinity).
+available_hosts()-> 
+    gen_server:call(?MODULE, {available_hosts},infinity).
 
 start_app(ApplicationStr,Application,CloneCmd,Dir,Vm)-> 
     gen_server:call(?MODULE, {start_app,ApplicationStr,Application,CloneCmd,Dir,Vm},infinity).
@@ -81,7 +107,7 @@ ping()->
 %% ====================================================================
 
 %% --------------------------------------------------------------------
-%% Function: init/1
+%% Function: 
 %% Description: Initiates the server
 %% Returns: {ok, State}          |
 %%          {ok, State, Timeout} |
@@ -102,6 +128,11 @@ init([]) ->
 %%          {stop, Reason, Reply, State}   | (terminate/2 is called)
 %%          {stop, Reason, State}            (aterminate/2 is called)
 %% --------------------------------------------------------------------
+
+handle_call({install},_From,State) ->
+    Reply=rpc:call(node(),cluster_lib,install,[],2*5000),
+    {reply, Reply, State};
+
 
 handle_call({start_app,ApplicationStr,Application,CloneCmd,Dir,Vm},_From,State) ->
     Reply=cluster_lib:start_app(ApplicationStr,Application,CloneCmd,Dir,Vm),
