@@ -45,10 +45,25 @@
 %% Returns: non
 %% --------------------------------------------------------------------
 install()->
+    %%% load Git + check hosts
     os:cmd("rm -rf "++?HostConfigDir),
     os:cmd(?GitHostConfigFile),
     {ok,HostInfoList}=file:consult(?HostConfigFile),
     [{ok,Available},{error,_NotAvailable}]=check_hosts(HostInfoList),
+
+    % start leader master 
+    case Available of
+	[]->
+	    {error,[no_hosts_available]};
+	[LeaderHostInfo|_]->
+	    glurk
+	    % start master vm
+
+	    % load and start support application
+
+	    % load and start master application 
+    end,
+	    
     ok.
 
 %% --------------------------------------------------------------------
