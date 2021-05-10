@@ -33,7 +33,9 @@
 %% --------------------------------------------------------------------
 %% Definitions 
 %% --------------------------------------------------------------------
-
+-define(GitHostConfigCmd,"git clone https://github.com/joq62/host_config.git").
+-define(HostFile,"host_config/hosts.config").
+-define(HostConfigDir,"host_config").
 %% --------------------------------------------------------------------
 %% Function: available_hosts()
 %% Description: Based on hosts.config file checks which hosts are avaible
@@ -45,6 +47,12 @@
 
 
 % OaM related
+-export([
+	 load_config/0,
+	 read_config/0,
+	 status_hosts/0
+	]).
+
 -export([
 	 install/0,
 	 available_hosts/0
@@ -80,6 +88,14 @@ boot()->
 start()-> gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
 stop()-> gen_server:call(?MODULE, {stop},infinity).
 
+
+load_config()-> 
+    gen_server:call(?MODULE, {load_config},infinity).
+read_config()-> 
+    gen_server:call(?MODULE, {read_config},infinity).
+status_hosts()-> 
+    gen_server:call(?MODULE, {status_hosts},infinity).
+%% old
 install()-> 
     gen_server:call(?MODULE, {install},infinity).
 available_hosts()-> 
@@ -128,6 +144,27 @@ init([]) ->
 %%          {stop, Reason, Reply, State}   | (terminate/2 is called)
 %%          {stop, Reason, State}            (aterminate/2 is called)
 %% --------------------------------------------------------------------
+
+
+
+handle_call({status_hosts},_From,State) ->
+    Reply=rpc:call(node(),cluster_lib,status_hosts,[?HostFile],5000),
+    {reply, Reply, State};
+
+handle_call({read_config},_From,State) ->
+    Reply=rpc:call(node(),cluster_lib,read_config,[?HostFile],5000),
+    {reply, Reply, State};
+
+handle_call({load_config},_From,State) ->
+    Reply=rpc:call(node(),cluster_lib,load_config,[?HostConfigDir,?HostFile,?GitHostConfigCmd],2*5000),
+   
+    {reply, Reply, State};
+
+handle_call({status_hosts},_From,State) ->
+    Reply=rpc:call(node(),host,status_hosts,[?HostFile],2*5000),
+    {reply, Reply, State};
+
+
 
 handle_call({install},_From,State) ->
     Reply=rpc:call(node(),cluster_lib,install,[],2*5000),

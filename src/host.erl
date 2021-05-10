@@ -4,7 +4,7 @@
 %%% 
 %%% Created : 10 dec 2012
 %%% -------------------------------------------------------------------
--module(cluster_lib).  
+-module(host).  
    
 %% --------------------------------------------------------------------
 %% Include files
@@ -36,18 +36,15 @@
 
 %% External exports
 -export([
-	 load_config/3,
-	 read_config/1,
+	 running_hosts/1,
+	 missing_hosts/1,
+	 status_host/1,
 	 status_hosts/1
-
-	]).
-
-
--export([
-	 install/0,
-	 start_app/5,
-	 stop_app/4,
-	 app_status/2
+%	 restart_host/0
+%	 install/0,
+%	 start_app/5,
+%	 stop_app/4,
+%	 app_status/2
 
 	]).
 
@@ -56,54 +53,56 @@
 %% ====================================================================
 %% External functions
 %% ====================================================================
+status_hosts(HostInfoList)->
+  check_hosts(HostInfoList).
 %% --------------------------------------------------------------------
 %% Function:start
 %% Description: List of test cases 
 %% Returns: non
 %% --------------------------------------------------------------------
-status_hosts(HostFile)->
-    Reply=case filelib:is_file(HostFile) of
-	      true->
-		  {ok,[HostInfoList]}=file:consult(HostFile),
-		  host:check_hosts(HostInfoList);
-	      false->
-		  {error,[noexist,HostFile]}
-	  end,
-    Reply.
+status_host(HostInfo)->
+    {host_id,HostId}=lists:keyfind(host_id,1,HostInfo),
+    {ip,Ip}=lists:keyfind(ip,1,HostInfo),
+    {ssh_port,Port}=lists:keyfind(ssh_port,1,HostInfo),
+    {uid,Uid}=lists:keyfind(uid,1,HostInfo),
+    {pwd,Pwd}=lists:keyfind(pwd,1,HostInfo),
+    case my_ssh:ssh_send(Ip,Port,Uid,Pwd,"hostname",10*5000) of
+	[_HostId]->
+	    running;
+	Err->
+	    missing
+    end.
+%% --------------------------------------------------------------------
+%% Function:start
+%% Description: List of test cases 
+%% Returns: non
+%% --------------------------------------------------------------------
+running_hosts(HostInfoList)->
+    Running=case check_hosts(HostInfoList) of
+		[{ok,Available},{error,_NotAvailable}]->
+		    Available;
+		Err->
+		    {error,[Err]}
+	    end,
+    Running.
 
 %% --------------------------------------------------------------------
 %% Function:start
 %% Description: List of test cases 
 %% Returns: non
 %% --------------------------------------------------------------------
-load_config(Dir,HostFile,GitCmd)->
-    os:cmd("rm -rf "++Dir),
-    os:cmd(GitCmd),
-    Reply=case filelib:is_file(HostFile) of
-	      true->
-		  ok;
-	      false->
-		  {error,[noexist,HostFile]}
-	  end,
-    Reply.
-%% --------------------------------------------------------------------
-%% Function:start
-%% Description: List of test cases 
-%% Returns: non
-%% --------------------------------------------------------------------
-read_config(HostFile)->
-    Reply=case filelib:is_file(HostFile) of
-	      true->
-		  file:consult(HostFile);
-	      false->
-		  {error,[noexist,HostFile]}
-	  end,
-    Reply.
-%% --------------------------------------------------------------------
-%% Function:start
-%% Description: List of test cases 
-%% Returns: non
-%% --------------------------------------------------------------------
+missing_hosts(HostInfoList)->
+    Missing=case check_hosts(HostInfoList) of
+		[{ok,_Available},{error, NotAvailable}]->
+		    NotAvailable;
+		Err->
+		    {error,[Err]}
+	    end,
+    Missing.
+
+
+		
+    
 
 %% --------------------------------------------------------------------
 %% Function:start
