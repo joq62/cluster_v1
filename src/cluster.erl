@@ -148,7 +148,7 @@ init([]) ->
 
 
 handle_call({status_hosts},_From,State) ->
-    Reply=rpc:call(node(),cluster_lib,status_hosts,[?HostFile],5000),
+    Reply=rpc:call(node(),cluster_lib,status_hosts,[?HostFile],5*5000),
     {reply, Reply, State};
 
 handle_call({read_config},_From,State) ->

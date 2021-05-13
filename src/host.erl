@@ -66,7 +66,7 @@ status_host(HostInfo)->
     {ssh_port,Port}=lists:keyfind(ssh_port,1,HostInfo),
     {uid,Uid}=lists:keyfind(uid,1,HostInfo),
     {pwd,Pwd}=lists:keyfind(pwd,1,HostInfo),
-    case my_ssh:ssh_send(Ip,Port,Uid,Pwd,"hostname",10*5000) of
+    case my_ssh:ssh_send(Ip,Port,Uid,Pwd,"hostname",5000) of
 	[_HostId]->
 	    running;
 	Err->
@@ -156,10 +156,12 @@ check_host(Pid,HostInfo)->
     {ssh_port,Port}=lists:keyfind(ssh_port,1,HostInfo),
     {uid,Uid}=lists:keyfind(uid,1,HostInfo),
     {pwd,Pwd}=lists:keyfind(pwd,1,HostInfo),
-    Pid!{check_host,{my_ssh:ssh_send(Ip,Port,Uid,Pwd,"hostname",5000),HostInfo}}.
+    Result=rpc:call(node(),my_ssh,ssh_send,[Ip,Port,Uid,Pwd,"hostname",7000],5000),
+ %   io:format("Result ~p~n",[{Result, ?MODULE,?LINE}]),
+    Pid!{check_host,{Result,HostInfo}}.
 
 host_status(Key,Vals,[])->
- %   io:format("~p~n",[{?MODULE,?LINE,Key,Vals}]),
+  %  io:format("~p~n",[{?MODULE,?LINE,Key,Vals}]),
      host_status(Vals,[]).
 
 host_status([],Status)->

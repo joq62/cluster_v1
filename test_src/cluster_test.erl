@@ -62,8 +62,33 @@ start()->
 %% Returns: non
 %% --------------------------------------------------------------------
 pass_2()->
-    glurk=cluster:status_hosts(),
-    
+
+    [{ok,[[{host_id,"joq62-X550CA"},
+	  {ip,"192.168.1.50"},
+	  {ssh_port,22},
+	  {uid,"joq62"},
+	  {pwd,"festum01"}]]},
+    {error,[[{host_id,"c2"},
+	     {ip,"192.168.0.202"},
+	     {ssh_port,22},
+	     {uid,"joq62"},
+	     {pwd,"festum01"}], 
+	    [{host_id,"c1"},
+	     {ip,"192.168.0.201"},
+	     {ssh_port,22},
+	     {uid,"joq62"},
+	     {pwd,"festum01"}],
+	    [{host_id,"c0"},
+	     {ip,"192.168.0.200"},
+	     {ssh_port,22},
+	     {uid,"joq62"},
+	     {pwd,"festum01"}],
+	    [{host_id,"joq62-X550CA"},
+	     {ip,"192.168.0.100"},
+	     {ssh_port,22},
+	     {uid,"joq62"},
+	     {pwd,"festum01"}]]}]=cluster:status_hosts(),
+ %   io:format("R= ~p~n",[{R,?MODULE,?FUNCTION_NAME,?LINE}]),    
 
     ok.
 
@@ -91,6 +116,11 @@ pass_1()->
 	  {pwd,"festum01"}],
 	 [{host_id,"c2"},
 	  {ip,"192.168.0.202"},
+	  {ssh_port,22},
+	  {uid,"joq62"},
+	  {pwd,"festum01"}],
+	 [{host_id,"joq62-X550CA"},
+	  {ip,"192.168.1.50"},
 	  {ssh_port,22},
 	  {uid,"joq62"},
 	  {pwd,"festum01"}]]}=cluster:read_config(),
