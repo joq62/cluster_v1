@@ -50,7 +50,8 @@
 -export([
 	 load_config/0,
 	 read_config/0,
-	 status_hosts/0
+	 status_hosts/0,
+	 start_master/1
 	]).
 
 -export([
@@ -95,6 +96,10 @@ read_config()->
     gen_server:call(?MODULE, {read_config},infinity).
 status_hosts()-> 
     gen_server:call(?MODULE, {status_hosts},infinity).
+
+start_master(HostId)->
+    gen_server:call(?MODULE, {start_master,HostId},infinity).
+    
 %% old
 install()-> 
     gen_server:call(?MODULE, {install},infinity).
@@ -145,7 +150,9 @@ init([]) ->
 %%          {stop, Reason, State}            (aterminate/2 is called)
 %% --------------------------------------------------------------------
 
-
+handle_call({start_master,HostId},_From,State) ->
+    Reply=rpc:call(node(),cluster_lib,start_master,[HostId,?HostFile],5*5000),
+    {reply, Reply, State};
 
 handle_call({status_hosts},_From,State) ->
     Reply=rpc:call(node(),cluster_lib,status_hosts,[?HostFile],5*5000),

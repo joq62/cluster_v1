@@ -38,8 +38,8 @@
 -export([
 	 load_config/3,
 	 read_config/1,
-	 status_hosts/1
-
+	 status_hosts/1,
+	 start_master/2
 	]).
 
 
@@ -56,6 +56,35 @@
 %% ====================================================================
 %% External functions
 %% ====================================================================
+%% --------------------------------------------------------------------
+%% Function:start
+%% Description: List of test cases 
+%% Returns: non
+%% --------------------------------------------------------------------
+start_master(HostId,HostFile)->
+    L1=status_hosts(HostFile),
+    {ok,AllRunningHosts}=lists:keyfind(ok,1,L1),
+    HostInfoList=[HostInfo||HostInfo<-AllRunningHosts,
+			{host_id,HostId}==lists:keyfind(host_id,1,HostInfo)],
+    R=case HostInfoList of
+	  []->
+	      [];
+	  [HostInfo|_]->
+	      {host_id,HostId}=lists:keyfind(host_id,1,HostInfo),
+	      {ip,Ip}=lists:keyfind(ip,1,HostInfo),
+	      {ssh_port,Port}=lists:keyfind(ssh_port,1,HostInfo),
+	      {uid,Uid}=lists:keyfind(uid,1,HostInfo),
+	      {pwd,Pwd}=lists:keyfind(pwd,1,HostInfo),
+	      case my_ssh:ssh_send(Ip,Port,Uid,Pwd,"erl -detached -sname master -setcookie "++?Cookie,5000) of
+		  [_HostId]->
+		      running;
+		  Err->
+		      missing
+	      end
+      end,
+    R.
+
+
 %% --------------------------------------------------------------------
 %% Function:start
 %% Description: List of test cases 

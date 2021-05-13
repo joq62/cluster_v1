@@ -44,6 +44,10 @@ start()->
     ok=pass_2(),
     io:format("~p~n",[{"Stop pass_2()",?MODULE,?FUNCTION_NAME,?LINE}]),
 
+    io:format("~p~n",[{"Start pass_3()",?MODULE,?FUNCTION_NAME,?LINE}]),
+    ok=pass_3(),
+    io:format("~p~n",[{"Stop pass_3()",?MODULE,?FUNCTION_NAME,?LINE}]),
+
  
     
    
@@ -53,6 +57,18 @@ start()->
     io:format("~p~n",[{"Stop cleaup",?MODULE,?FUNCTION_NAME,?LINE}]),
    
     io:format("------>"++atom_to_list(?MODULE)++" ENDED SUCCESSFUL ---------"),
+    ok.
+
+
+%% --------------------------------------------------------------------
+%% Function:start/0 
+%% Description: Initiate the eunit tests, set upp needed processes etc
+%% Returns: non
+%% --------------------------------------------------------------------
+pass_3()->
+    []=cluster:start_master("glurk"),
+    glurk=cluster:start_master("joq62-X550CA"),
+    
     ok.
 
 
