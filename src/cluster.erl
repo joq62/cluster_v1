@@ -51,8 +51,8 @@
 	 load_config/0,
 	 read_config/0,
 	 status_hosts/0,
-	 start_master/1,
-	 start_slave/3
+	 start_masters/1,
+	 start_slaves/3
 	]).
 
 -export([
@@ -98,10 +98,10 @@ read_config()->
 status_hosts()-> 
     gen_server:call(?MODULE, {status_hosts},infinity).
 
-start_master(HostId)->
-    gen_server:call(?MODULE, {start_master,HostId},infinity).
-start_slave(HostId,SlaveName,ErlCmd)->
-    gen_server:call(?MODULE, {start_slave,HostId,SlaveName,ErlCmd},infinity).
+start_masters(HostIds)->
+    gen_server:call(?MODULE, {start_masters,HostIds},infinity).
+start_slaves(HostId,SlaveNames,ErlCmd)->
+    gen_server:call(?MODULE, {start_slaves,HostId,SlaveNames,ErlCmd},infinity).
     
 %% old
 install()-> 
@@ -153,13 +153,15 @@ init([]) ->
 %%          {stop, Reason, State}            (aterminate/2 is called)
 %% --------------------------------------------------------------------
 
-handle_call({start_slave,HostId,SlaveName,ErlCmd},_From,State) ->
+handle_call({start_slaves,HostId,SlaveNames,ErlCmd},_From,State) ->
     Master=list_to_atom("master"++"@"++HostId),
-    Reply=rpc:call(node(),cluster_lib,start_slave,[Master,HostId,SlaveName,ErlCmd],5000),
+    Reply=rpc:call(node(),cluster_lib,start_slaves,[Master,HostId,SlaveNames,ErlCmd],2*5000),
     {reply, Reply, State};
 
-handle_call({start_master,HostId},_From,State) ->
-    Reply=rpc:call(node(),cluster_lib,start_master,[HostId,?HostFile],5*5000),
+handle_call({start_masters,HostIds},_From,State) ->
+    io:format("start_master,HostId ~p~n",[{HostIds,?MODULE,?LINE}]),
+    Reply=rpc:call(node(),cluster_lib,start_masters,[HostIds,?HostFile],100*5000),
+    io:format("start_master,Reply ~p~n",[{Reply,?MODULE,?LINE}]),
     {reply, Reply, State};
 
 handle_call({status_hosts},_From,State) ->

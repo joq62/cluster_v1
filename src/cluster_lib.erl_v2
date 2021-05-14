@@ -20,6 +20,17 @@
 -define(AppCatalogDir,"catalog").
 -define(AppCatalogFile,"catalog/application.catalog").
 
+
+
+
+
+-record(host,{
+	      host_id,
+	      ip,
+	      ssh_port,
+	      uid,
+	      pwd
+	     }).
 %% --------------------------------------------------------------------
 
 
@@ -28,8 +39,8 @@
 	 load_config/3,
 	 read_config/1,
 	 status_hosts/1,
-	 start_masters/2,
-	 start_slaves/4
+	 start_master/2,
+	 start_slave/4
 	]).
 
 
@@ -51,52 +62,31 @@
 %% Description: List of test cases 
 %% Returns: non
 %% --------------------------------------------------------------------
-start_slaves(Master,HostId,SlaveNames,ErlCmd)->
-    F1=fun start_slave/2,
-    F2=fun check_slave/3,
-    SlaveSToStart=[{Master,HostId,SlaveName,ErlCmd}||SlaveName<-SlaveNames],
-    R1=mapreduce:start(F1,F2,[],SlaveSToStart),
-    R1.
- 
-start_slave(Pid,{Master,HostId,SlaveName,ErlCmd})->
-  %  io:format("SlaveName,Master  ~p~n",[{SlaveName,Master,?MODULE,?LINE}]),
-    R=case rpc:call(Master,slave,stop,[list_to_atom(SlaveName++"@"++HostId)],2*5000) of
+start_slave(Master,HostId,SlaveName,ErlCmd)->
+    R=case rpc:call(Master,slave,stop,[list_to_atom(SlaveName++"@"++HostId)],2000) of
 	  ok->
-	      case rpc:call(Master,slave,start,[HostId,SlaveName,ErlCmd],2*5000) of
+	      case rpc:call(Master,slave,start,[HostId,SlaveName,ErlCmd],2000) of
 		  {ok,Slave}->
 		      rpc:call(Master,os,cmd,["rm -rf "++SlaveName],5000),
-		      case rpc:call(Master,file,make_dir,[SlaveName],5000) of
+		      case rpc:call(Master,file,make_dir,[SlaveName],2000) of
 			  ok->
 			      {ok,Slave};
-			  Err->
-			      {error,[Err,Master,HostId,SlaveName,?MODULE,?FUNCTION_NAME,?LINE]}
+			  {error, Reason}->
+			      {error,[Reason,?MODULE,?FUNCTION_NAME,?LINE]}
 		      end;
-		  Err->
-		      {error,[Err,Master,HostId,SlaveName,?MODULE,?FUNCTION_NAME,?LINE]}
+		  {error, Reason}->
+		      {error,[Reason,?MODULE,?FUNCTION_NAME,?LINE]}
 	      end;
 	  Err ->
-	      {error,[Err,Master,HostId,SlaveName,?MODULE,?FUNCTION_NAME,?LINE]}
+	      {error,[Err,?MODULE,?FUNCTION_NAME,?LINE]}
       end,
- %   io:format("R  ~p~n",[{R,?MODULE,?LINE}]),
-    Pid!{check_slave,{R}}.
-check_slave(check_slave,Vals,[])->
-  %  io:format("~p~n",[{?MODULE,?LINE,Key,Vals}]),
-     check_slave(Vals,[]).
-
-
-check_slave([],AllResult)->
-    AllResult;
-check_slave([{Result}|T],Acc)->
-    check_slave(T,[Result|Acc]).
-
-
-
+    R.
 %% --------------------------------------------------------------------
 %% Function:start
 %% Description: List of test cases 
 %% Returns: non
 %% --------------------------------------------------------------------
-start_masters(HostIds,HostFile)->
+start_master(HostIds,HostFile)->
     F1=fun start_master/2,
     F2=fun check_master/3,
     StatusHosts=status_hosts(HostFile),    
@@ -109,42 +99,48 @@ start_masters(HostIds,HostFile)->
 		      {pwd,Pwd}]<-AllRunningHosts,
 		     true==lists:member(HostId,HostIds)],
     R1=mapreduce:start(F1,F2,[],HostsToStart),
-    R1.
+    HostsToStart.
     
 
+%start_master(Pid,glurk)->
+%    ok.
+
+check_master(a,b,c)->
+    ok.
+
 start_master(Pid,[{host_id,HostId},{ip,Ip},{ssh_port,Port},{uid,Uid},{pwd,Pwd}])->
-    X1=rpc:call(node(),my_ssh,ssh_send,[Ip,Port,Uid,Pwd,"rm -rf master",3000],7000),
-    io:format("rm -rf master ~p~n",[{X1,?MODULE,?LINE}]),
-    X2=rpc:call(node(),my_ssh,ssh_send,[Ip,Port,Uid,Pwd,"mkdir master",3000],7000),
-    io:format("mkdir  master ~p~n",[{X2,?MODULE,?LINE}]),
-    Stopped=stop_vm(HostId,"master"),
-    io:format("Stopped ~p~n",[{Stopped,?MODULE,?LINE}]),
-    ErlCmd="erl -detached -sname master -setcookie "++?Cookie,
-						
-    io:format("Ip,Port,Uid,Pwd ~p~n",[{Ip,Port,Uid,Pwd,?MODULE,?LINE}]),
-    Result=rpc:call(node(),my_ssh,ssh_send,[Ip,Port,Uid,Pwd,ErlCmd,2*5000],3*5000),
-    Pid!{check_master,{Result,HostId}}.
-	      
-check_master(check_master,Vals,[])->
-  %  io:format("~p~n",[{?MODULE,?LINE,Key,Vals}]),
-     check_master(Vals,[]).
 
 
-check_master([],AllResult)->
-    AllResult;
-check_master([{Result,HostId}|T],Acc)->
-    NewAcc=case Result of
-	       ok->
-		   case node_started(HostId,"master") of
-		       true->
-			   [{ok,HostId}|Acc];
-		       false->
-			   [{error,[host_not_started,HostId,?MODULE,?FUNCTION_NAME,?LINE]}|Acc]
-		   end;
-	        _->
-		   [{Result,HostId}|Acc]
-	   end,
-    check_master(T,NewAcc).
+ %   HostInfoList=[HostInfo||HostInfo<-AllRunningHosts,
+%			{host_id,HostId}==lists:keyfind(host_id,1,HostInfo)],
+    R=case HostInfoList of
+	  []->
+	      {error,[eexist,HostId]};
+	  [HostInfo|_]->
+	      {host_id,HostId}=lists:keyfind(host_id,1,HostInfo),
+	      {ip,Ip}=lists:keyfind(ip,1,HostInfo),
+	      {ssh_port,Port}=lists:keyfind(ssh_port,1,HostInfo),
+	      {uid,Uid}=lists:keyfind(uid,1,HostInfo),
+	      {pwd,Pwd}=lists:keyfind(pwd,1,HostInfo),
+	      X1=rpc:call(node(),my_ssh,ssh_send,[Ip,Port,Uid,Pwd,"rm -rf master",3000],7000),
+	      io:format("rm -rf master ~p~n",[{X1,?MODULE,?LINE}]),
+	      X2=rpc:call(node(),my_ssh,ssh_send,[Ip,Port,Uid,Pwd,"mkdir master",3000],7000),
+	      io:format("mkdir  master ~p~n",[{X2,?MODULE,?LINE}]),
+	      Stopped=stop_vm(HostId,"master"),
+	      io:format("Stopped ~p~n",[{Stopped,?MODULE,?LINE}]),
+	      ErlCmd="erl -detached -sname master -setcookie "++?Cookie,
+	    %  ErlCmd="erl -detached -sname master -setcookie abc",
+	      io:format("Ip,Port,Uid,Pwd ~p~n",[{Ip,Port,Uid,Pwd,?MODULE,?LINE}]),
+	      Started=rpc:call(node(),my_ssh,ssh_send,[Ip,Port,Uid,Pwd,ErlCmd,2*5000],3*5000),
+	      io:format("Started ~p~n",[{Started,?MODULE,?LINE}]),
+	      case node_started(HostId,"master") of
+		  true->
+		      ok;
+		  false ->
+		      {error,[not_started,list_to_atom("master"++"@"++HostId)]}
+	      end
+      end,
+    R.
 
 
 %% --------------------------------------------------------------------
