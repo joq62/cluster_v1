@@ -39,7 +39,8 @@
 	 load_config/3,
 	 read_config/1,
 	 status_hosts/1,
-	 start_master/2
+	 start_master/2,
+	 start_slave/4
 	]).
 
 
@@ -61,6 +62,30 @@
 %% Description: List of test cases 
 %% Returns: non
 %% --------------------------------------------------------------------
+start_slave(Master,HostId,SlaveName,ErlCmd)->
+    R=case rpc:call(Master,slave,stop,[list_to_atom(SlaveName++"@"++HostId)],2000) of
+	  ok->
+	      case rpc:call(Master,slave,start,[HostId,SlaveName,ErlCmd],2000) of
+		  {ok,Slave}->
+		      rpc:call(Master,os,cmd,["rm -rf "++SlaveName],5000),
+		      case rpc:call(Master,file,make_dir,[SlaveName],2000) of
+			  ok->
+			      {ok,Slave};
+			  {error, Reason}->
+			      {error,[Reason,?MODULE,?FUNCTION_NAME,?LINE]}
+		      end;
+		  {error, Reason}->
+		      {error,[Reason,?MODULE,?FUNCTION_NAME,?LINE]}
+	      end;
+	  Err ->
+	      {error,[Err,?MODULE,?FUNCTION_NAME,?LINE]}
+      end,
+    R.
+%% --------------------------------------------------------------------
+%% Function:start
+%% Description: List of test cases 
+%% Returns: non
+%% --------------------------------------------------------------------
 start_master(HostId,HostFile)->
     L1=status_hosts(HostFile),
     {ok,AllRunningHosts}=lists:keyfind(ok,1,L1),
@@ -68,18 +93,29 @@ start_master(HostId,HostFile)->
 			{host_id,HostId}==lists:keyfind(host_id,1,HostInfo)],
     R=case HostInfoList of
 	  []->
-	      [];
+	      {error,[eexist,HostId]};
 	  [HostInfo|_]->
 	      {host_id,HostId}=lists:keyfind(host_id,1,HostInfo),
 	      {ip,Ip}=lists:keyfind(ip,1,HostInfo),
 	      {ssh_port,Port}=lists:keyfind(ssh_port,1,HostInfo),
 	      {uid,Uid}=lists:keyfind(uid,1,HostInfo),
 	      {pwd,Pwd}=lists:keyfind(pwd,1,HostInfo),
-	      case my_ssh:ssh_send(Ip,Port,Uid,Pwd,"erl -detached -sname master -setcookie "++?Cookie,5000) of
-		  [_HostId]->
-		      running;
-		  Err->
-		      missing
+	      ok=rpc:call(node(),my_ssh,ssh_send,[Ip,Port,Uid,Pwd,"rm -rf master",1000],5000),
+%	      io:format("rm -rf master ~p~n",[{X1,?MODULE,?LINE}]),
+	      ok=rpc:call(node(),my_ssh,ssh_send,[Ip,Port,Uid,Pwd,"mkdir master",1000],5000),
+%	      io:format("mkdir  master ~p~n",[{X2,?MODULE,?LINE}]),
+	      true=stop_vm(HostId,"master"),
+%	      io:format("Stopped ~p~n",[{Stopped,?MODULE,?LINE}]),
+	      ErlCmd="erl -detached -sname master -setcookie "++?Cookie,
+	    %  ErlCmd="erl -detached -sname master -setcookie abc",
+%	      io:format("Ip,Port,Uid,Pwd ~p~n",[{Ip,Port,Uid,Pwd,?MODULE,?LINE}]),
+	      ok=rpc:call(node(),my_ssh,ssh_send,[Ip,Port,Uid,Pwd,ErlCmd,3000],7000),
+%	      io:format("Started ~p~n",[{Started,?MODULE,?LINE}]),
+	      case node_started(HostId,"master") of
+		  true->
+		      ok;
+		  false ->
+		      {error,[not_started,list_to_atom("master"++"@"++HostId)]}
 	      end
       end,
     R.
@@ -134,12 +170,60 @@ read_config(HostFile)->
 %% Description: List of test cases 
 %% Returns: non
 %% --------------------------------------------------------------------
+% --------------------------------------------------------------------
+%% Function:start/0 
+%% Description: Initiate the eunit tests, set upp needed processes etc
+%% Returns: non
+%% --------------------------------------------------------------------
+
+node_started(HostId,NodeName)->
+    Vm=list_to_atom(NodeName++"@"++HostId),
+    check_started(50,Vm,100,false).
+    
+check_started(_N,_Vm,_SleepTime,true)->
+    true;
+check_started(0,_Vm,_SleepTime,Result)->
+    Result;
+check_started(N,Vm,SleepTime,_Result)->
+  %  io:format("N,Vm ~p~n",[{N,Vm,?MODULE,?LINE}]),
+    NewResult=case net_adm:ping(Vm) of
+		  pong->
+		     true;
+		  _Err->
+		      timer:sleep(SleepTime),
+		      false
+	      end,
+    check_started(N-1,Vm,SleepTime,NewResult).
 
 %% --------------------------------------------------------------------
 %% Function:start
 %% Description: List of test cases 
 %% Returns: non
 %% --------------------------------------------------------------------
+stop_vm(HostId,VmId)->
+    Vm=list_to_atom(VmId++"@"++HostId),
+    stop_vm(Vm).
+
+stop_vm(Vm)->
+    rpc:cast(Vm,init,stop,[]),
+    vm_stopped(Vm).
+
+vm_stopped(Vm)->
+    check_stopped(50,Vm,100,false).
+    
+check_stopped(_N,_Vm,_SleepTime,ok)->
+    ok;
+check_stopped(0,_Vm,_SleepTime,Result)->
+    Result;
+check_stopped(N,Vm,SleepTime,_Result)->
+    NewResult=case net_adm:ping(Vm) of
+		  pang->
+		     true;
+		  _Err->
+		      timer:sleep(SleepTime),
+		      false
+	      end,
+    check_stopped(N-1,Vm,SleepTime,NewResult).
 
 %% --------------------------------------------------------------------
 %% Function:start

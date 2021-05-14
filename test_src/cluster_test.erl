@@ -66,9 +66,13 @@ start()->
 %% Returns: non
 %% --------------------------------------------------------------------
 pass_3()->
-    []=cluster:start_master("glurk"),
-    glurk=cluster:start_master("joq62-X550CA"),
-    
+    {error,[eexist,"glurk"]}=cluster:start_master("glurk"),
+    HostId="joq62-X550CA",
+    ok=cluster:start_master(HostId),
+    Master=list_to_atom("master"++"@"++HostId),
+    pong=net_adm:ping(Master),
+    Slave0=list_to_atom("slave0"++"@"++HostId),
+    {ok,Slave0}=cluster:start_slave(HostId,"slave0","-setcookie abc"),
     ok.
 
 

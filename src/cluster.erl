@@ -51,7 +51,8 @@
 	 load_config/0,
 	 read_config/0,
 	 status_hosts/0,
-	 start_master/1
+	 start_master/1,
+	 start_slave/3
 	]).
 
 -export([
@@ -99,6 +100,8 @@ status_hosts()->
 
 start_master(HostId)->
     gen_server:call(?MODULE, {start_master,HostId},infinity).
+start_slave(HostId,SlaveName,ErlCmd)->
+    gen_server:call(?MODULE, {start_slave,HostId,SlaveName,ErlCmd},infinity).
     
 %% old
 install()-> 
@@ -149,6 +152,11 @@ init([]) ->
 %%          {stop, Reason, Reply, State}   | (terminate/2 is called)
 %%          {stop, Reason, State}            (aterminate/2 is called)
 %% --------------------------------------------------------------------
+
+handle_call({start_slave,HostId,SlaveName,ErlCmd},_From,State) ->
+    Master=list_to_atom("master"++"@"++HostId),
+    Reply=rpc:call(node(),cluster_lib,start_slave,[Master,HostId,SlaveName,ErlCmd],5000),
+    {reply, Reply, State};
 
 handle_call({start_master,HostId},_From,State) ->
     Reply=rpc:call(node(),cluster_lib,start_master,[HostId,?HostFile],5*5000),
