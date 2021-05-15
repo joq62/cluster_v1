@@ -26,7 +26,7 @@
 %% Key Data structures
 %% 
 %% --------------------------------------------------------------------
--record(state, {}).
+-record(state, {hosts,slaves}).
 
 
 
@@ -52,9 +52,11 @@
 	 load_config/0,
 	 read_config/0,
 	 status_hosts/0,
+	 status_slaves/0,
 	 start_masters/1,
 	 start_slaves/3,
-	 start_slaves/1
+	 start_slaves/1,
+	 allocate_slave/1
 	]).
 
 -export([
@@ -99,11 +101,15 @@ read_config()->
     gen_server:call(?MODULE, {read_config},infinity).
 status_hosts()-> 
     gen_server:call(?MODULE, {status_hosts},infinity).
+status_slaves()-> 
+    gen_server:call(?MODULE, {status_slaves},infinity).
 
 start_masters(HostIds)->
     gen_server:call(?MODULE, {start_masters,HostIds},infinity).
 start_slaves(HostIds)->
     gen_server:call(?MODULE, {start_slaves,HostIds},infinity).
+allocate_slave(Args)->
+    gen_server:call(?MODULE, {allocate_slave,Args},infinity).
     
 
 start_slaves(HostId,SlaveNames,ErlCmd)->
@@ -160,7 +166,6 @@ init([]) ->
 %% --------------------------------------------------------------------
 
 handle_call({start_slaves,HostIds},_From,State) ->
-    
     Reply=rpc:call(node(),cluster_lib,start_slaves,[HostIds,?SlaveFile],2*5000),
     {reply, Reply, State};
 
@@ -173,6 +178,10 @@ handle_call({start_masters,HostIds},_From,State) ->
     io:format("start_master,HostId ~p~n",[{HostIds,?MODULE,?LINE}]),
     Reply=rpc:call(node(),cluster_lib,start_masters,[HostIds,?HostFile],100*5000),
     io:format("start_master,Reply ~p~n",[{Reply,?MODULE,?LINE}]),
+    {reply, Reply, State};
+
+handle_call({status_slaves},_From,State) ->
+    Reply=rpc:call(node(),cluster_lib,status_slaves,[?SlaveFile],5*5000),
     {reply, Reply, State};
 
 handle_call({status_hosts},_From,State) ->

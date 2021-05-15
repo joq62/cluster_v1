@@ -28,6 +28,7 @@
 	 load_config/3,
 	 read_config/1,
 	 status_hosts/1,
+	 status_slaves/1,
 	 start_masters/2,
 	 start_slaves/4,
 	 start_slaves/2
@@ -174,6 +175,53 @@ check_master([{Result,HostId}|T],Acc)->
 		   [{Result,HostId}|Acc]
 	   end,
     check_master(T,NewAcc).
+
+
+%% --------------------------------------------------------------------
+%% Function:start
+%% Description: List of test cases 
+%% Returns: non
+%% --------------------------------------------------------------------
+status_slaves(SlavesConfigFile)->
+    F1=fun ping_slave/2,
+    F2=fun check_slave_ping/3,
+    Reply=case file:consult(SlavesConfigFile) of
+	       {ok,SlaveInfoList}->
+		  SlavesToPing=slaves_to_check(SlaveInfoList,[]),
+		%  io:format("SlavesToStart  ~p~n",[{SlavesToStart,?MODULE,?LINE}]),		  
+		  mapreduce:start(F1,F2,[],SlavesToPing);
+	      false->
+		  {error,[noexist,SlavesConfigFile]}
+	  end,
+    Reply.
+
+slaves_to_check([],SlavesToPing)->
+    SlavesToPing;
+slaves_to_check([{HostId,SlaveInfoList}|T],Acc)->
+    SlavesToPing=[{SlaveName,HostId}||{SlaveName,_}<-SlaveInfoList],
+    NewAcc=lists:append(SlavesToPing,Acc),
+    slaves_to_check(T,NewAcc).
+
+ping_slave(Pid,{SlaveName,HostId})->
+   % io:format("SlaveName,HostId  ~p~n",[{SlaveName,HostId ,?MODULE,?LINE}]),
+    Slave=list_to_atom(SlaveName++"@"++HostId),
+    Result=net_adm:ping(Slave),
+    Pid!{ping_slave,{Result,Slave,HostId}}.
+
+
+check_slave_ping(ping_slave,Vals,[])->
+  %  io:format("~p~n",[{?MODULE,?LINE,Key,Vals}]),
+    check_slave_ping(Vals,{{running,[]},{missing,[]}}).
+check_slave_ping([],{{running,Running},{missing,Missing}})->
+    {{running,Running},{missing,Missing}};
+check_slave_ping([{Result,Slave,HostId}|T],{{running,Acc1},{missing,Acc2}})->
+    NewAcc=case Result of
+	       pong->
+		   {{running,[{Slave,HostId}|Acc1]},{missing,Acc2}};
+	       pang->
+		   {{running,Acc1},{missing,[{Slave,HostId}|Acc2]}}
+	   end,
+    check_slave_ping(T,NewAcc).
 
 
 %% --------------------------------------------------------------------

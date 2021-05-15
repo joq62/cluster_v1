@@ -52,6 +52,9 @@ start()->
     ok=pass_4(),
     io:format("~p~n",[{"Stop pass_4()",?MODULE,?FUNCTION_NAME,?LINE}]),
 
+    io:format("~p~n",[{"Start pass_5()",?MODULE,?FUNCTION_NAME,?LINE}]),
+    ok=pass_5(),
+    io:format("~p~n",[{"Stop pass_5()",?MODULE,?FUNCTION_NAME,?LINE}]),
  
     
    
@@ -63,6 +66,19 @@ start()->
     io:format("------>"++atom_to_list(?MODULE)++" ENDED SUCCESSFUL ---------"),
     ok.
 
+
+%% --------------------------------------------------------------------
+%% Function:start/0 
+%% Description: Initiate the eunit tests, set upp needed processes etc
+%% Returns: non
+%% --------------------------------------------------------------------
+pass_5()->
+    {{running,Running},{missing,Missing}} =cluster:status_slaves(),
+    10=lists:flatlength(Running),
+    10=lists:flatlength(Missing),
+
+    
+    ok.
 
 %% --------------------------------------------------------------------
 %% Function:start/0 
