@@ -57,9 +57,11 @@ setup()->
     
     % Start a Service application 
       
-    ok=rpc:call(node(),application,start,[?APP],2*5000),
+    rpc:call(node(),application,stop,[?APP],10*5000),
+    timer:sleep(500),
+    ok=rpc:call(node(),application,start,[?APP],10*5000),
     ?assertMatch({pong,_,?APP},
-		 rpc:call(node(),?APP,ping,[],2*5000)),		 
+		 rpc:call(node(),?APP,ping,[],1*5000)),		 
 
     ok.
 

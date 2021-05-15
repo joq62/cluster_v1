@@ -211,15 +211,15 @@ ping_slave(Pid,{SlaveName,HostId})->
 
 check_slave_ping(ping_slave,Vals,[])->
   %  io:format("~p~n",[{?MODULE,?LINE,Key,Vals}]),
-    check_slave_ping(Vals,{{running,[]},{missing,[]}}).
-check_slave_ping([],{{running,Running},{missing,Missing}})->
-    {{running,Running},{missing,Missing}};
-check_slave_ping([{Result,Slave,HostId}|T],{{running,Acc1},{missing,Acc2}})->
+    check_slave_ping(Vals,[{running,[]},{missing,[]}]).
+check_slave_ping([],[{running,Running},{missing,Missing}])->
+    [{running,Running},{missing,Missing}];
+check_slave_ping([{Result,Slave,HostId}|T],[{running,Acc1},{missing,Acc2}])->
     NewAcc=case Result of
 	       pong->
-		   {{running,[{Slave,HostId}|Acc1]},{missing,Acc2}};
+		   [{running,[{Slave,HostId}|Acc1]},{missing,Acc2}];
 	       pang->
-		   {{running,Acc1},{missing,[{Slave,HostId}|Acc2]}}
+		   [{running,Acc1},{missing,[{Slave,HostId}|Acc2]}]
 	   end,
     check_slave_ping(T,NewAcc).
 

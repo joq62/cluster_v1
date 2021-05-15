@@ -26,7 +26,8 @@
 %% Key Data structures
 %% 
 %% --------------------------------------------------------------------
--record(state, {hosts,slaves}).
+-record(state, {running_hosts,missing_hosts,
+		running_slaves,missing_slaves}).
 
 
 
@@ -56,12 +57,16 @@
 	 start_masters/1,
 	 start_slaves/3,
 	 start_slaves/1,
-	 allocate_slave/1
+	 running_hosts/0,
+	 running_slaves/0,
+	 missing_hosts/0,
+	 missing_slaves/0
 	]).
 
 -export([
 	 install/0,
 	 available_hosts/0
+
 	]).
 
 
@@ -95,6 +100,16 @@ start()-> gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
 stop()-> gen_server:call(?MODULE, {stop},infinity).
 
 
+
+running_hosts()->
+       gen_server:call(?MODULE, {running_hosts},infinity).
+running_slaves()->
+       gen_server:call(?MODULE, {running_slaves},infinity).
+missing_hosts()->
+       gen_server:call(?MODULE, {missing_hosts},infinity).
+missing_slaves()->
+       gen_server:call(?MODULE, {missing_slaves},infinity).
+
 load_config()-> 
     gen_server:call(?MODULE, {load_config},infinity).
 read_config()-> 
@@ -108,9 +123,6 @@ start_masters(HostIds)->
     gen_server:call(?MODULE, {start_masters,HostIds},infinity).
 start_slaves(HostIds)->
     gen_server:call(?MODULE, {start_slaves,HostIds},infinity).
-allocate_slave(Args)->
-    gen_server:call(?MODULE, {allocate_slave,Args},infinity).
-    
 
 start_slaves(HostId,SlaveNames,ErlCmd)->
     gen_server:call(?MODULE, {start_slaves,HostId,SlaveNames,ErlCmd},infinity).
@@ -129,7 +141,6 @@ stop_app(ApplicationStr,Application,Dir,Vm)->
 
 app_status(Vm,Application)-> 
     gen_server:call(?MODULE, {app_status,Vm,Application},infinity).
-
 ping()-> 
     gen_server:call(?MODULE, {ping},infinity).
 
@@ -152,7 +163,16 @@ ping()->
 %
 %% --------------------------------------------------------------------
 init([]) ->
-    {ok, #state{}}.
+    ssh:start(),
+    ok=rpc:call(node(),cluster_lib,load_config,[?HostConfigDir,?HostFile,?GitHostConfigCmd],2*5000),
+     [{running,RunningHosts},{missing,MissingHosts}]=
+	rpc:call(node(),cluster_lib,status_hosts,[?HostFile],5*5000),
+    [{running,RunningSlaves},{missing,MissingSlaves}]=
+	rpc:call(node(),cluster_lib,status_slaves,[?SlaveFile],5*5000),
+    {ok, #state{running_hosts=RunningHosts,
+		missing_hosts=MissingHosts,
+		running_slaves=RunningSlaves,
+		missing_slaves=MissingSlaves}}.
     
 %% --------------------------------------------------------------------
 %% Function: handle_call/3
@@ -164,6 +184,19 @@ init([]) ->
 %%          {stop, Reason, Reply, State}   | (terminate/2 is called)
 %%          {stop, Reason, State}            (aterminate/2 is called)
 %% --------------------------------------------------------------------
+
+handle_call({running_hosts},_From,State) ->
+    Reply=State#state.running_hosts,
+    {reply, Reply, State};
+handle_call({running_slaves},_From,State) ->
+    Reply=State#state.running_slaves,
+    {reply, Reply, State};
+handle_call({missing_hosts},_From,State) ->
+    Reply=State#state.missing_hosts,
+    {reply, Reply, State};
+handle_call({missing_slaves},_From,State) ->
+    Reply=State#state.missing_slaves,
+    {reply, Reply, State};
 
 handle_call({start_slaves,HostIds},_From,State) ->
     Reply=rpc:call(node(),cluster_lib,start_slaves,[HostIds,?SlaveFile],2*5000),
@@ -177,16 +210,31 @@ handle_call({start_slaves,HostId,SlaveNames,ErlCmd},_From,State) ->
 handle_call({start_masters,HostIds},_From,State) ->
  %   io:format("start_master,HostId ~p~n",[{HostIds,?MODULE,?LINE}]),
     Reply=rpc:call(node(),cluster_lib,start_masters,[HostIds,?HostFile],100*5000),
-    io:format("start_master,Reply ~p~n",[{Reply,?MODULE,?LINE}]),
+%    io:format("start_master,Reply ~p~n",[{Reply,?MODULE,?LINE}]),
     {reply, Reply, State};
 
 handle_call({status_slaves},_From,State) ->
     Reply=rpc:call(node(),cluster_lib,status_slaves,[?SlaveFile],5*5000),
-    {reply, Reply, State};
+    io:format("Reply ~p~n",[{Reply,?MODULE,?LINE}]),
+    NewState=case Reply of 
+		 [{running,R},{missing,M}]->
+		     State#state{running_slaves=R,missing_slaves=M};
+		 _->
+		     State
+	     end,
+    {reply, Reply, NewState};
 
 handle_call({status_hosts},_From,State) ->
     Reply=rpc:call(node(),cluster_lib,status_hosts,[?HostFile],5*5000),
-    {reply, Reply, State};
+    io:format("Reply ~p~n",[{Reply,?MODULE,?LINE}]),
+    NewState=case Reply of 
+		 [{running,R},{missing,M}]->
+		     State#state{running_hosts=R,missing_hosts=M};
+		 _->
+		     State
+	     end,
+    
+    {reply, Reply, NewState};
 
 handle_call({read_config},_From,State) ->
     Reply=rpc:call(node(),cluster_lib,read_config,[?HostFile],5000),
@@ -196,11 +244,6 @@ handle_call({load_config},_From,State) ->
     Reply=rpc:call(node(),cluster_lib,load_config,[?HostConfigDir,?HostFile,?GitHostConfigCmd],2*5000),
    
     {reply, Reply, State};
-
-handle_call({status_hosts},_From,State) ->
-    Reply=rpc:call(node(),host,status_hosts,[?HostFile],2*5000),
-    {reply, Reply, State};
-
 
 
 handle_call({install},_From,State) ->

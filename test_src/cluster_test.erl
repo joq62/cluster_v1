@@ -36,25 +36,29 @@ start()->
     ok=setup(),
     io:format("~p~n",[{"Stop setup",?MODULE,?FUNCTION_NAME,?LINE}]),
 
-    io:format("~p~n",[{"Start pass_1()",?MODULE,?FUNCTION_NAME,?LINE}]),
-    ok=pass_1(),
-    io:format("~p~n",[{"Stop pass_1()",?MODULE,?FUNCTION_NAME,?LINE}]),
+    io:format("~p~n",[{"Start pass_0()",?MODULE,?FUNCTION_NAME,?LINE}]),
+    ok=pass_0(),
+    io:format("~p~n",[{"Stop pass_0()",?MODULE,?FUNCTION_NAME,?LINE}]),
 
-    io:format("~p~n",[{"Start pass_2()",?MODULE,?FUNCTION_NAME,?LINE}]),
-    ok=pass_2(),
-    io:format("~p~n",[{"Stop pass_2()",?MODULE,?FUNCTION_NAME,?LINE}]),
+  %  io:format("~p~n",[{"Start pass_1()",?MODULE,?FUNCTION_NAME,?LINE}]),
+   % ok=pass_1(),
+  %  io:format("~p~n",[{"Stop pass_1()",?MODULE,?FUNCTION_NAME,?LINE}]),
 
-    io:format("~p~n",[{"Start pass_3()",?MODULE,?FUNCTION_NAME,?LINE}]),
-    ok=pass_3(),
-    io:format("~p~n",[{"Stop pass_3()",?MODULE,?FUNCTION_NAME,?LINE}]),
+  %  io:format("~p~n",[{"Start pass_2()",?MODULE,?FUNCTION_NAME,?LINE}]),
+   % ok=pass_2(),
+  %  io:format("~p~n",[{"Stop pass_2()",?MODULE,?FUNCTION_NAME,?LINE}]),
 
-    io:format("~p~n",[{"Start pass_4()",?MODULE,?FUNCTION_NAME,?LINE}]),
-    ok=pass_4(),
-    io:format("~p~n",[{"Stop pass_4()",?MODULE,?FUNCTION_NAME,?LINE}]),
+  %  io:format("~p~n",[{"Start pass_3()",?MODULE,?FUNCTION_NAME,?LINE}]),
+  %  ok=pass_3(),
+  %  io:format("~p~n",[{"Stop pass_3()",?MODULE,?FUNCTION_NAME,?LINE}]),
 
-    io:format("~p~n",[{"Start pass_5()",?MODULE,?FUNCTION_NAME,?LINE}]),
-    ok=pass_5(),
-    io:format("~p~n",[{"Stop pass_5()",?MODULE,?FUNCTION_NAME,?LINE}]),
+  %  io:format("~p~n",[{"Start pass_4()",?MODULE,?FUNCTION_NAME,?LINE}]),
+  %  ok=pass_4(),
+  %  io:format("~p~n",[{"Stop pass_4()",?MODULE,?FUNCTION_NAME,?LINE}]),
+
+  %  io:format("~p~n",[{"Start pass_5()",?MODULE,?FUNCTION_NAME,?LINE}]),
+  %  ok=pass_5(),
+  %  io:format("~p~n",[{"Stop pass_5()",?MODULE,?FUNCTION_NAME,?LINE}]),
  
     
    
@@ -72,12 +76,59 @@ start()->
 %% Description: Initiate the eunit tests, set upp needed processes etc
 %% Returns: non
 %% --------------------------------------------------------------------
+pass_0()->
+    RHosts=cluster:running_hosts(),
+    RSlaves=cluster:running_slaves(),
+    MHosts=cluster:missing_hosts(),
+    MSlaves=cluster:missing_slaves(),
+    io:format("RHosts ~p~n",[{RHosts,?MODULE,?FUNCTION_NAME,?LINE}]),
+    io:format("RSlaves ~p~n",[{RSlaves,?MODULE,?FUNCTION_NAME,?LINE}]),
+    io:format("MHosts ~p~n",[{MHosts,?MODULE,?FUNCTION_NAME,?LINE}]),
+    io:format("MSlaves ~p~n",[{MSlaves,?MODULE,?FUNCTION_NAME,?LINE}]),
+
+    10=lists:flatlength(RHosts),
+    0=lists:flatlength(RSlaves),
+    20=lists:flatlength(MHosts),
+    20=lists:flatlength(MSlaves),
+    HostIds=["glurk","joq62-X550CA","c2"], 
+    [{ok,_},{ok,_}]=cluster:start_masters(HostIds),
+    WantedHostIds=["glurk","joq62-X550CA","c2"],   
+    L=cluster:start_slaves(WantedHostIds),
+    R=[{ok,Slave}||{ok,Slave}<-L],
+    10=lists:flatlength(R),
+    [{running,RunningHosts},{missing,MissingHosts}]=cluster:status_hosts(),
+    10=lists:flatlength(RunningHosts),
+    20=lists:flatlength(MissingHosts),
+
+    [{running,RunningSlaves},{missing,MissingSlaves}]=cluster:status_slaves(),
+    10=lists:flatlength(RunningSlaves),
+    10=lists:flatlength(MissingSlaves),  
+    timer:sleep(1000),
+ 
+    RHosts1=cluster:running_hosts(),
+    RSlaves1=cluster:running_slaves(),
+    MHosts1=cluster:missing_hosts(),
+    MSlaves1=cluster:missing_slaves(),
+    io:format("RHosts1 ~p~n",[{RHosts1,?MODULE,?FUNCTION_NAME,?LINE}]),
+    io:format("RSlaves1 ~p~n",[{RSlaves1,?MODULE,?FUNCTION_NAME,?LINE}]),
+    io:format("MHosts1 ~p~n",[{MHosts1,?MODULE,?FUNCTION_NAME,?LINE}]),
+    io:format("MSlaves1 ~p~n",[{MSlaves1,?MODULE,?FUNCTION_NAME,?LINE}]),
+
+    10=lists:flatlength(cluster:running_hosts()),
+    10=lists:flatlength(cluster:running_slaves()),
+    20=lists:flatlength(cluster:missing_hosts()),
+    10=lists:flatlength(cluster:missing_slaves()),
+    ok.
+
+%% --------------------------------------------------------------------
+%% Function:start/0 
+%% Description: Initiate the eunit tests, set upp needed processes etc
+%% Returns: non
+%% --------------------------------------------------------------------
 pass_5()->
     {{running,Running},{missing,Missing}}=cluster:status_slaves(),
     10=lists:flatlength(Running),
-    10=lists:flatlength(Missing),
-
-    
+    10=lists:flatlength(Missing),   
     ok.
 
 %% --------------------------------------------------------------------
@@ -198,7 +249,22 @@ pass_11()->
 %% Returns: non
 %% --------------------------------------------------------------------
 setup()->
-      ssh:start(),
+    ToKill=[	    
+	    'master@joq62-X550CA',
+	    'master@c2',
+	    'slave0@joq62-X550CA',
+	    'slave1@joq62-X550CA',
+	    'slave2@joq62-X550CA',
+	    'slave3@joq62-X550CA',
+	    slave1@c2,
+	    slave3@c2,
+	    slave2@c2,
+	    slave4@c2,
+	    slave0@c2,
+	    'slave4@joq62-X550CA'],
+    R=[{rpc:call(Node,init,stop,[]),Node}||Node<-ToKill],
+    io:format("R ~p~n",[{R,?MODULE,?FUNCTION_NAME,?LINE}]),
+    timer:sleep(1000),
     ok.
 
 
@@ -209,7 +275,12 @@ setup()->
 %% -------------------------------------------------------------------    
 
 cleanup()->
-  
+    ToKill=['slave0@joq62-X550CA','slave1@joq62-X550CA',
+	    'slave2@joq62-X550CA','slave3@joq62-X550CA',slave1@c2,
+	    slave3@c2,slave2@c2,slave4@c2,slave0@c2,
+	    'slave4@joq62-X550CA','master@joq62-X550CA',master@c2],
+    [rpc:call(Node,init,stop,[])||Node<-ToKill],
+    application:stop(cluster),
     ok.
 %% --------------------------------------------------------------------
 %% Function:start/0 

@@ -161,7 +161,7 @@ check_host(Pid,HostInfo)->
     Pid!{check_host,{Result,HostInfo}}.
 
 host_status(Key,Vals,[])->
-  %  io:format("~p~n",[{?MODULE,?LINE,Key,Vals}]),
+ %   io:format("~p~n",[{?MODULE,?LINE,Key,Vals}]),
      host_status(Vals,[]).
 
 host_status([],Status)->
