@@ -40,9 +40,9 @@ start()->
     ok=pass_1(),
     io:format("~p~n",[{"Stop pass_1()",?MODULE,?FUNCTION_NAME,?LINE}]),
 
- %   io:format("~p~n",[{"Start pass_2()",?MODULE,?FUNCTION_NAME,?LINE}]),
-%    ok=pass_2(),
- %   io:format("~p~n",[{"Stop pass_2()",?MODULE,?FUNCTION_NAME,?LINE}]),
+    io:format("~p~n",[{"Start pass_2()",?MODULE,?FUNCTION_NAME,?LINE}]),
+    ok=pass_2(),
+    io:format("~p~n",[{"Stop pass_2()",?MODULE,?FUNCTION_NAME,?LINE}]),
 
     io:format("~p~n",[{"Start pass_3()",?MODULE,?FUNCTION_NAME,?LINE}]),
     ok=pass_3(),
@@ -73,7 +73,7 @@ start()->
 %% Returns: non
 %% --------------------------------------------------------------------
 pass_5()->
-    {{running,Running},{missing,Missing}} =cluster:status_slaves(),
+    {{running,Running},{missing,Missing}}=cluster:status_slaves(),
     10=lists:flatlength(Running),
     10=lists:flatlength(Missing),
 
@@ -119,38 +119,10 @@ pass_4()->
 %% --------------------------------------------------------------------
 pass_2()->
 
-    [{ok,[[{host_id,"c2"},
-	   {ip,"192.168.1.202"},
-	   {ssh_port,22},
-	   {uid,"joq62"},
-	   {pwd,"festum01"}],
-	  [{host_id,"joq62-X550CA"},
-	   {ip,"192.168.1.50"},
-	   {ssh_port,22},
-	   {uid,"joq62"},
-	   {pwd,"festum01"}]]},
-     {error,[[{host_id,"c2"},
-	      {ip,"192.168.0.202"},
-	      {ssh_port,22},
-	      {uid,"joq62"},
-	      {pwd,"festum01"}],
-	     [{host_id,"c1"},
-	      {ip,"192.168.0.201"},
-	      {ssh_port,22},
-	      {uid,"joq62"},
-	      {pwd,"festum01"}],
-	     [{host_id,"c0"},
-	      {ip,"192.168.0.200"},
-	      {ssh_port,22},
-	      {uid,"joq62"},
-	      {pwd,"festum01"}],
-	     [{host_id,"joq62-X550CA"},
-	      {ip,"192.168.0.100"},
-	      {ssh_port,22},
-	      {uid,"joq62"},
-	      {pwd,"festum01"}]]}]=cluster:status_hosts(),
- %   io:format("R= ~p~n",[{R,?MODULE,?FUNCTION_NAME,?LINE}]),    
-
+    [{running,Running},{missing,Missing}]=cluster:status_hosts(),
+    10=lists:flatlength(Running),
+    20=lists:flatlength(Missing),
+    
     ok.
 
 %% --------------------------------------------------------------------

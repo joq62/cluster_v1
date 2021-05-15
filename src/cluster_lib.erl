@@ -130,7 +130,7 @@ start_masters(HostIds,HostFile)->
     F1=fun start_master/2,
     F2=fun check_master/3,
     StatusHosts=status_hosts(HostFile),    
-    {ok,AllRunningHosts}=lists:keyfind(ok,1,StatusHosts),
+    {running,AllRunningHosts}=lists:keyfind(running,1,StatusHosts),
      HostsToStart=[[{host_id,HostId},{ip,Ip},{ssh_port,Port},{uid,Uid},{pwd,Pwd}]
 		   ||[{host_id,HostId},
 		      {ip,Ip},

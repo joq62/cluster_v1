@@ -175,7 +175,7 @@ handle_call({start_slaves,HostId,SlaveNames,ErlCmd},_From,State) ->
     {reply, Reply, State};
 
 handle_call({start_masters,HostIds},_From,State) ->
-    io:format("start_master,HostId ~p~n",[{HostIds,?MODULE,?LINE}]),
+ %   io:format("start_master,HostId ~p~n",[{HostIds,?MODULE,?LINE}]),
     Reply=rpc:call(node(),cluster_lib,start_masters,[HostIds,?HostFile],100*5000),
     io:format("start_master,Reply ~p~n",[{Reply,?MODULE,?LINE}]),
     {reply, Reply, State};

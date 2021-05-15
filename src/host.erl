@@ -146,9 +146,9 @@ check_hosts(HostInfoList)->
     F1=fun check_host/2,
     F2=fun host_status/3,
     R1=mapreduce:start(F1,F2,[],HostInfoList),
-    Available=[HostInfo||{ok,HostInfo}<-R1],
-    NotAvailable=[HostInfo||{error,[_,HostInfo]}<-R1],
-    [{ok,Available},{error,NotAvailable}].
+    Running=[HostInfo||{ok,HostInfo}<-R1],
+    Missing=[HostInfo||{error,[_,HostInfo]}<-R1],
+    [{running,Running},{missing,Missing}].
 
 check_host(Pid,HostInfo)->
     {host_id,HostId}=lists:keyfind(host_id,1,HostInfo),
