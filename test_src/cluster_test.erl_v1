@@ -87,12 +87,19 @@ pass_3()->
 %% Returns: non
 %% --------------------------------------------------------------------
 pass_4()->
-    WantedHostIds=["glurk","joq62-X550CA","c2"],   
-%    SlaveNames=["slave0","slave1","slave2","slave3","slave4"],
- %   ErlCmd="-setcookie abc",
-    L=cluster:start_slaves(WantedHostIds),
-    R=[{ok,Slave}||{ok,Slave}<-L],
-    10=lists:flatlength(R),
+    MasterHostIds=["joq62-X550CA","c2"],   
+    SlaveNames=["slave0","slave1","slave2","slave3","slave4"],
+    ErlCmd="-setcookie abc",
+    [[{ok,_},
+      {ok,_},
+      {ok,_},
+      {ok,_},
+      {ok,_}],
+     [{ok,_},
+      {ok,_},
+      {ok,_},
+      {ok,_},
+      {ok,_}]]=[cluster:start_slaves(HostId,SlaveNames,ErlCmd)||HostId<-MasterHostIds],
     ok.
 
 

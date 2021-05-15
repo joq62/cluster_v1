@@ -36,6 +36,7 @@
 -define(GitHostConfigCmd,"git clone https://github.com/joq62/host_config.git").
 -define(HostFile,"host_config/hosts.config").
 -define(HostConfigDir,"host_config").
+-define(SlaveFile,"host_config/slaves.config").
 %% --------------------------------------------------------------------
 %% Function: available_hosts()
 %% Description: Based on hosts.config file checks which hosts are avaible
@@ -52,7 +53,8 @@
 	 read_config/0,
 	 status_hosts/0,
 	 start_masters/1,
-	 start_slaves/3
+	 start_slaves/3,
+	 start_slaves/1
 	]).
 
 -export([
@@ -100,6 +102,10 @@ status_hosts()->
 
 start_masters(HostIds)->
     gen_server:call(?MODULE, {start_masters,HostIds},infinity).
+start_slaves(HostIds)->
+    gen_server:call(?MODULE, {start_slaves,HostIds},infinity).
+    
+
 start_slaves(HostId,SlaveNames,ErlCmd)->
     gen_server:call(?MODULE, {start_slaves,HostId,SlaveNames,ErlCmd},infinity).
     
@@ -152,6 +158,11 @@ init([]) ->
 %%          {stop, Reason, Reply, State}   | (terminate/2 is called)
 %%          {stop, Reason, State}            (aterminate/2 is called)
 %% --------------------------------------------------------------------
+
+handle_call({start_slaves,HostIds},_From,State) ->
+    
+    Reply=rpc:call(node(),cluster_lib,start_slaves,[HostIds,?SlaveFile],2*5000),
+    {reply, Reply, State};
 
 handle_call({start_slaves,HostId,SlaveNames,ErlCmd},_From,State) ->
     Master=list_to_atom("master"++"@"++HostId),

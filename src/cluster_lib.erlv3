@@ -58,26 +58,18 @@ start_slaves(HostIds,SlavesConfigFile)->
     F2=fun check_slave/3,
     Reply=case file:consult(SlavesConfigFile) of
 	       {ok,SlaveInfoList}->
-		  SlavesToStart=slaves_to_start(SlaveInfoList,HostIds,[]),
-		%  io:format("SlavesToStart  ~p~n",[{SlavesToStart,?MODULE,?LINE}]),		  
-		  mapreduce:start(F1,F2,[],SlavesToStart);
+		  
+		  {ok,HostInfoList}=file:consult(HostFile),
+	%	  io:format("HostInfoList ~p~n",[{HostInfoList,?MODULE,?LINE}]),
+		  host:status_hosts(HostInfoList);
 	      false->
-		  {error,[noexist,SlavesConfigFile]}
+		  {error,[noexist,HostFile]}
 	  end,
     Reply.
 
-slaves_to_start([],_,SlavesToStart)->
-    SlavesToStart;
-slaves_to_start([{HostId,SlaveInfoList}|T],HostIds,Acc)->
-    NewAcc=case lists:member(HostId,HostIds) of
-	       true->
-		   Master=list_to_atom("master"++"@"++HostId),
-		   SlavesToStart=[{Master,HostId,SlaveName,ErlCmd}||{SlaveName,ErlCmd}<-SlaveInfoList],
-		   lists:append(SlavesToStart,Acc);
-	       false->
-		   Acc
-	   end,
-    slaves_to_start(T,HostIds,NewAcc).
+    SlaveSToStart=[{Master,HostId,SlaveName,ErlCmd}||SlaveName<-SlaveNames],
+    R1=mapreduce:start(F1,F2,[],SlaveSToStart),
+    R1.
 
 
 start_slaves(Master,HostId,SlaveNames,ErlCmd)->
