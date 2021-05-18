@@ -215,7 +215,7 @@ handle_call({start_masters,HostIds},_From,State) ->
 
 handle_call({status_slaves},_From,State) ->
     Reply=rpc:call(node(),cluster_lib,status_slaves,[?SlaveFile],5*5000),
-    io:format("Reply ~p~n",[{Reply,?MODULE,?LINE}]),
+%    io:format("Reply ~p~n",[{Reply,?MODULE,?LINE}]),
     NewState=case Reply of 
 		 [{running,R},{missing,M}]->
 		     State#state{running_slaves=R,missing_slaves=M};
@@ -226,7 +226,7 @@ handle_call({status_slaves},_From,State) ->
 
 handle_call({status_hosts},_From,State) ->
     Reply=rpc:call(node(),cluster_lib,status_hosts,[?HostFile],5*5000),
-    io:format("Reply ~p~n",[{Reply,?MODULE,?LINE}]),
+ %   io:format("Reply ~p~n",[{Reply,?MODULE,?LINE}]),
     NewState=case Reply of 
 		 [{running,R},{missing,M}]->
 		     State#state{running_hosts=R,missing_hosts=M};

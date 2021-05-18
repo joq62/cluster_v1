@@ -4,7 +4,7 @@
 [{description, "cluster  " },
 {vsn, "1.0.0" },
 {modules, 
-	  [cluster_app,cluster_sup,cluster]},
+	  [cluster_app,cluster_sup,cluster,cluster_control]},
 {registered,[cluster]},
 {applications, [kernel,stdlib]},
 {mod, {cluster_app,[]}},

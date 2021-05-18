@@ -77,6 +77,9 @@ start()->
 %% Returns: non
 %% --------------------------------------------------------------------
 pass_0()->
+    {pong,
+     'test_cluster@joq62-X550CA',
+     cluster_control}=cluster_control:ping(),
     RHosts=cluster:running_hosts(),
     RSlaves=cluster:running_slaves(),
     MHosts=cluster:missing_hosts(),
@@ -86,13 +89,13 @@ pass_0()->
     io:format("MHosts ~p~n",[{MHosts,?MODULE,?FUNCTION_NAME,?LINE}]),
     io:format("MSlaves ~p~n",[{MSlaves,?MODULE,?FUNCTION_NAME,?LINE}]),
 
-    10=lists:flatlength(RHosts),
-    0=lists:flatlength(RSlaves),
-    20=lists:flatlength(MHosts),
-    20=lists:flatlength(MSlaves),
-    HostIds=["glurk","joq62-X550CA","c2"], 
+   % 10=lists:flatlength(RHosts),
+   % 0=lists:flatlength(RSlaves),
+   % 20=lists:flatlength(MHosts),
+   % 20=lists:flatlength(MSlaves),
+    HostIds=["glurk","joq62-X550CA","c0","c2"], 
     [{ok,_},{ok,_}]=cluster:start_masters(HostIds),
-    WantedHostIds=["glurk","joq62-X550CA","c2"],   
+    WantedHostIds=["glurk","joq62-X550CA","c0","c2"],   
     L=cluster:start_slaves(WantedHostIds),
     R=[{ok,Slave}||{ok,Slave}<-L],
     10=lists:flatlength(R),
@@ -137,7 +140,7 @@ pass_5()->
 %% Returns: non
 %% --------------------------------------------------------------------
 pass_3()->
-    HostIds=["glurk","joq62-X550CA","c2"],
+    HostIds=["glurk","joq62-X550CA","c0"],
     [{ok,_},{ok,_}]=cluster:start_masters(HostIds),
 
    % Master2=list_to_atom("master"++"@"++HostId2),
@@ -154,7 +157,7 @@ pass_3()->
 %% Returns: non
 %% --------------------------------------------------------------------
 pass_4()->
-    WantedHostIds=["glurk","joq62-X550CA","c2"],   
+    WantedHostIds=["glurk","joq62-X550CA","c0"],   
 %    SlaveNames=["slave0","slave1","slave2","slave3","slave4"],
  %   ErlCmd="-setcookie abc",
     L=cluster:start_slaves(WantedHostIds),
@@ -256,6 +259,11 @@ setup()->
 	    'slave1@joq62-X550CA',
 	    'slave2@joq62-X550CA',
 	    'slave3@joq62-X550CA',
+	    slave1@c0,
+	    slave3@c0,
+	    slave2@c0,
+	    slave4@c0,
+	    slave0@c0,
 	    slave1@c2,
 	    slave3@c2,
 	    slave2@c2,
@@ -278,7 +286,11 @@ cleanup()->
     ToKill=['slave0@joq62-X550CA','slave1@joq62-X550CA',
 	    'slave2@joq62-X550CA','slave3@joq62-X550CA',slave1@c2,
 	    slave3@c2,slave2@c2,slave4@c2,slave0@c2,
-	    'slave4@joq62-X550CA','master@joq62-X550CA',master@c2],
+	    'slave4@joq62-X550CA','master@joq62-X550CA',master@c2,
+	    
+	    slave1@c0,
+	    slave3@c0,slave2@c0,slave4@c0,slave0@c0,
+	    master@c2],
     [rpc:call(Node,init,stop,[])||Node<-ToKill],
     application:stop(cluster),
     ok.

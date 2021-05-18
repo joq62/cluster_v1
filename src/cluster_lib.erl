@@ -144,11 +144,11 @@ start_masters(HostIds,HostFile)->
 
 start_master(Pid,[{host_id,HostId},{ip,Ip},{ssh_port,Port},{uid,Uid},{pwd,Pwd}])->
     X1=rpc:call(node(),my_ssh,ssh_send,[Ip,Port,Uid,Pwd,"rm -rf master",3000],7000),
-    io:format("rm -rf master ~p~n",[{X1,?MODULE,?LINE}]),
+ %   io:format("rm -rf master ~p~n",[{X1,?MODULE,?LINE}]),
     X2=rpc:call(node(),my_ssh,ssh_send,[Ip,Port,Uid,Pwd,"mkdir master",3000],7000),
-    io:format("mkdir  master ~p~n",[{X2,?MODULE,?LINE}]),
+ %   io:format("mkdir  master ~p~n",[{X2,?MODULE,?LINE}]),
     Stopped=stop_vm(HostId,"master"),
-    io:format("Stopped ~p~n",[{Stopped,?MODULE,?LINE}]),
+ %   io:format("Stopped ~p~n",[{Stopped,?MODULE,?LINE}]),
     ErlCmd="erl -detached -sname master -setcookie "++?Cookie,
 						
     io:format("Ip,Port,Uid,Pwd ~p~n",[{Ip,Port,Uid,Pwd,?MODULE,?LINE}]),
@@ -288,7 +288,7 @@ check_started(_N,_Vm,_SleepTime,true)->
 check_started(0,_Vm,_SleepTime,Result)->
     Result;
 check_started(N,Vm,SleepTime,_Result)->
-    io:format("N,Vm ~p~n",[{N,Vm,SleepTime,?MODULE,?LINE}]),
+%    io:format("N,Vm ~p~n",[{N,Vm,SleepTime,?MODULE,?LINE}]),
     NewResult=case net_adm:ping(Vm) of
 		  pong->
 		     true;

@@ -61,7 +61,8 @@ init([]) ->
     }.
 
 children()->
-    [?CHILD(cluster,worker)].
+    [?CHILD(cluster_control,worker),
+     ?CHILD(cluster,worker)].
 %% ====================================================================
 %% Internal functions
 %% ====================================================================
