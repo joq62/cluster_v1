@@ -57,12 +57,7 @@ setup()->
     
     % Start a Service application 
       
-    rpc:call(node(),application,stop,[?APP],10*5000),
-    timer:sleep(500),
-    application:set_env([{?APP,[{is_leader,true}]}]),
-    ok=rpc:call(node(),application,start,[?APP],10*5000),
-    ?assertMatch({pong,_,?APP},
-		 rpc:call(node(),?APP,ping,[],1*5000)),		 
+    	 
 
     ok.
 

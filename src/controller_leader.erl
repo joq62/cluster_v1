@@ -16,7 +16,7 @@
 -define(ControllerLeaderTime,30).
 
 %% --------------------------------------------------------------------
--export([start/0]).
+-export([start/2]).
 
 
 %% ====================================================================
@@ -28,9 +28,13 @@
 %% Description: Initiate the eunit tests, set upp needed processes etc
 %% Returns: non
 %% --------------------------------------------------------------------
-start()->
+start(ClusterName,Cookie)->
     application:set_env([{etcd,[{is_leader,true}]}]),
     ok=application:start(etcd),
+    timer:sleep(2000),
+    {atomic,ok}=etcd:cluster_info_create(ClusterName,Cookie),
+    host_controller:start(),
+    host_controller:status_hosts(),
     ok.
 
 

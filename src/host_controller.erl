@@ -1,17 +1,9 @@
 %%% -------------------------------------------------------------------
 %%% @author  : Joq Erlang
 %%% @doc: : 
-%%% Manage Computers
-%%% Install Cluster
-%%% Install cluster
-%%% Data-{HostId,Ip,SshPort,Uid,Pwd}
-%%% available_hosts()-> [{HostId,Ip,SshPort,Uid,Pwd},..]
-%%% install_leader_host({HostId,Ip,SshPort,Uid,Pwd})->ok|{error,Err}
-%%% cluster_status()->[{running,WorkingNodes},{not_running,NotRunningNodes}]
-
 %%% Created : 
 %%% -------------------------------------------------------------------
--module(controller).  
+-module(host_controller).  
 -behaviour(gen_server).
 
 %% --------------------------------------------------------------------
@@ -26,7 +18,7 @@
 %% Key Data structures
 %% 
 %% --------------------------------------------------------------------
--record(state, {cookie,cluster_name}).
+-record(state, {running_hosts,missing_hosts}).
 
 
 
@@ -46,32 +38,11 @@
 
 % OaM related
 -export([
-	 load_config/0,
-	 read_config/0,
-	 status_hosts/0,
-	 status_slaves/0,
-	 start_masters/1,
-	 start_slaves/3,
-	 start_slaves/1,
 	 running_hosts/0,
-	 running_slaves/0,
 	 missing_hosts/0,
-	 missing_slaves/0
+	 status_hosts/0
 	]).
 
--export([
-	 create/4,
-	 install/0,
-	 available_hosts/0
-
-	]).
-
-
--export([boot/0,
-	 start_app/5,
-	 stop_app/4,
-	 app_status/2
-	]).
 
 -export([start/0,
 	 stop/0,
@@ -88,9 +59,6 @@
 
 %% Asynchrounus Signals
 
-boot()->
-    application:start(?MODULE).
-
 %% Gen server functions
 
 start()-> gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
@@ -106,44 +74,11 @@ delete(Name)->
 %%---------------------------------------------------------------
 running_hosts()->
        gen_server:call(?MODULE, {running_hosts},infinity).
-running_slaves()->
-       gen_server:call(?MODULE, {running_slaves},infinity).
 missing_hosts()->
        gen_server:call(?MODULE, {missing_hosts},infinity).
-missing_slaves()->
-       gen_server:call(?MODULE, {missing_slaves},infinity).
 
-load_config()-> 
-    gen_server:call(?MODULE, {load_config},infinity).
-read_config()-> 
-    gen_server:call(?MODULE, {read_config},infinity).
 status_hosts()-> 
     gen_server:call(?MODULE, {status_hosts},infinity).
-status_slaves()-> 
-    gen_server:call(?MODULE, {status_slaves},infinity).
-
-start_masters(HostIds)->
-    gen_server:call(?MODULE, {start_masters,HostIds},infinity).
-start_slaves(HostIds)->
-    gen_server:call(?MODULE, {start_slaves,HostIds},infinity).
-
-start_slaves(HostId,SlaveNames,ErlCmd)->
-    gen_server:call(?MODULE, {start_slaves,HostId,SlaveNames,ErlCmd},infinity).
-    
-%% old
-install()-> 
-    gen_server:call(?MODULE, {install},infinity).
-available_hosts()-> 
-    gen_server:call(?MODULE, {available_hosts},infinity).
-
-start_app(ApplicationStr,Application,CloneCmd,Dir,Vm)-> 
-    gen_server:call(?MODULE, {start_app,ApplicationStr,Application,CloneCmd,Dir,Vm},infinity).
-
-stop_app(ApplicationStr,Application,Dir,Vm)-> 
-    gen_server:call(?MODULE, {stop_app,ApplicationStr,Application,Dir,Vm},infinity).
-
-app_status(Vm,Application)-> 
-    gen_server:call(?MODULE, {app_status,Vm,Application},infinity).
 ping()-> 
     gen_server:call(?MODULE, {ping},infinity).
 
@@ -166,20 +101,9 @@ ping()->
 %
 %% --------------------------------------------------------------------
 init([]) ->
-    io:format("all env ~p~n",[application:get_all_env()]),
-    {ok,X1}=application:get_env(cookie),
-    Cookie=atom_to_list(X1),
-    {ok,X2}=application:get_env(cluster_name),
-    ClusterName=atom_to_list(X2),    
-    {ok,IsLeader}=application:get_env(is_leader),
-    case IsLeader of
-	true->
-	    io:format("role = ~p~n",[leader]),
-	    controller_leader:start(ClusterName,Cookie);
-	false->
-	    io:format("role = ~p~n",[not_leader])
-    end,
-    {ok, #state{}}.
+    ssh:start(),
+%    [{running,R},{missing,M}]=host_lib:status_hosts(),
+    {ok, #state{running_hosts=[],missing_hosts=[]}}.
     
 %% --------------------------------------------------------------------
 %% Function: handle_call/3
@@ -192,45 +116,18 @@ init([]) ->
 %%          {stop, Reason, State}            (aterminate/2 is called)
 %% --------------------------------------------------------------------
 
-
-
-
-
-
-handle_call({start_slaves,HostId,SlaveNames,ErlCmd},_From,State) ->
-    Master=list_to_atom("master"++"@"++HostId),
-    Reply=rpc:call(node(),cluster_lib,start_slaves,[Master,HostId,SlaveNames,ErlCmd],2*5000),
+handle_call({running_hosts},_From,State) ->
+    Reply=State#state.running_hosts,
     {reply, Reply, State};
-
-
-handle_call({read_config},_From,State) ->
-    Reply=rpc:call(node(),cluster_lib,read_config,[?HostFile],5000),
+handle_call({missing_hosts},_From,State) ->
+    Reply=State#state.missing_hosts,
     {reply, Reply, State};
-
-handle_call({load_config},_From,State) ->
-    Reply=rpc:call(node(),cluster_lib,load_config,[?HostConfigDir,?HostFile,?GitHostConfigCmd],2*5000),
    
-    {reply, Reply, State};
-
-
-handle_call({install},_From,State) ->
-    Reply=rpc:call(node(),cluster_lib,install,[],2*5000),
-    {reply, Reply, State};
-
-
-handle_call({start_app,ApplicationStr,Application,CloneCmd,Dir,Vm},_From,State) ->
-    Reply=cluster_lib:start_app(ApplicationStr,Application,CloneCmd,Dir,Vm),
-    {reply, Reply, State};
-handle_call({stop_app,ApplicationStr,Application,Dir,Vm},_From,State) ->
-    Reply=cluster_lib:stop_app(ApplicationStr,Application,Dir,Vm),
-    {reply, Reply, State};
-handle_call({app_status,Vm,Application},_From,State) ->
-    Reply=cluster_lib:app_status(Vm,Application),
-    {reply, Reply, State};
-
-handle_call({ping},_From,State) ->
-    Reply={pong,node(),?MODULE},
-    {reply, Reply, State};
+handle_call({status_hosts},_From,State) ->
+    [{running,R},{missing,M}]=host_lib:status_hosts(),
+    Reply=[{running,R},{missing,M}],
+    NewState=State#state{running_hosts=R,missing_hosts=M},
+    {reply, Reply, NewState};
 
 handle_call({stop}, _From, State) ->
     {stop, normal, shutdown_ok, State};
