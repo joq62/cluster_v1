@@ -16,13 +16,16 @@ unit_test:
 	cp ../support/src/support.app ebin;
 	erlc -o ebin ../support/src/*.erl;
 #	service
-	cp src/cluster.app ebin;
+	cp src/controller.app ebin;
 	erlc -o ebin src/*.erl;
+#	etcd
+	cp ../etcd/src/etcd.app ebin;
+	erlc -o ebin ../etcd/src/*.erl;	
 #	test application
 	mkdir test_ebin;
 	cp test_src/*.app test_ebin;
 	erlc -o test_ebin test_src/*.erl;
 	erl -pa ebin -pa test_ebin\
 	    -setcookie abc\
-	    -sname test_cluster\
+	    -sname test_controller\
 	    -run unit_test start_test test_src/test.config

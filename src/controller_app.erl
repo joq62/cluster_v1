@@ -1,7 +1,7 @@
 %% Author: uabjle
 %% Created: 10 dec 2012
 %% Description: TODO: Add description to application_org
--module(cluster_app).
+-module(controller_app).
 
 -behaviour(application).
 %% --------------------------------------------------------------------
@@ -44,7 +44,7 @@
 %%          {error, Reason}
 %% --------------------------------------------------------------------
 start(_Type, _StartArgs) ->
-    {ok,Pid}= cluster_sup:start_link(),
+    {ok,Pid}= controller_sup:start_link(),
     {ok,Pid}.
    
 %% --------------------------------------------------------------------
