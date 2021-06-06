@@ -35,12 +35,16 @@ start_local_etcd(ClusterName,Cookie)->
     timer:sleep(2000),
     {atomic,ok}=etcd:cluster_info_create(ClusterName,Cookie),
     ok.
+%% --------------------------------------------------------------------
+%% Function:start/0 
+%% Description: Initiate the eunit tests, set upp needed processes etc
+%% Returns: non
+%% --------------------------------------------------------------------
 
 start_host_controller()->
     host_controller:start(),
     [{running,R},{missing,M}]=host_controller:status_hosts(),
     {R,M}.
-
 
 %% --------------------------------------------------------------------
 %% Function:start/0 

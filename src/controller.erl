@@ -167,18 +167,28 @@ ping()->
 %% --------------------------------------------------------------------
 init([]) ->
     io:format("all env ~p~n",[application:get_all_env()]),
-    {ok,X1}=application:get_env(cookie),
-    Cookie=atom_to_list(X1),
-    {ok,X2}=application:get_env(cluster_name),
-    ClusterName=atom_to_list(X2),    
+    {ok,Cookie}=application:get_env(cookie),
+    true=is_list(Cookie),
+    {ok,ClusterName}=application:get_env(cluster_name),
+    true=is_list(ClusterName),
+    {ok,NumControllers}=application:get_env(num_controllers),
+    true=is_integer(NumControllers),
+    {ok,Hosts}=application:get_env(hosts),
+    true=is_list(Hosts),
     {ok,IsLeader}=application:get_env(is_leader),
+    true=is_boolean(IsLeader),
     case IsLeader of
 	true->
 	    io:format("role = ~p~n",[leader]),
-	    controller_leader:start(ClusterName,Cookie);
+	    ok=controller_leader:start_local_etcd(ClusterName,Cookie),
+	    {RunningHosts,MissingHosts}=controller_leader:start_host_controller(),
+	    
+	    io:format("RunningHosts = ~p~n",[RunningHosts]),
+	    io:format("MissingHosts = ~p~n",[MissingHosts]);
 	false->
 	    io:format("role = ~p~n",[not_leader])
     end,
+    
     {ok, #state{}}.
     
 %% --------------------------------------------------------------------

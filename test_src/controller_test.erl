@@ -93,8 +93,7 @@ pass_0()->
 pass_1()->
     [{"c1","192.168.0.201",22,"joq62","festum01"},
      {"c0","192.168.0.200",22,"joq62","festum01"},
-     {"joq62-X550CA","192.168.0.100",22,"joq62",
-      "festum01"}]=host_controller:running_hosts(),
+     {"joq62-X550CA","192.168.0.100",22,"joq62","festum01"}]=host_controller:running_hosts(),
     ok.
 
 %% --------------------------------------------------------------------
@@ -164,8 +163,10 @@ setup()->
     rpc:call(node(),application,stop,[?APP],10*5000),
     timer:sleep(500),
     application:set_env([{?APP,[{is_leader,true},
-				{cluster_name,'test_cluster'},
-				{cookie,'abc'}]}]),
+				{cluster_name,"test_cluster"},
+				{cookie,"abc"},
+				{num_controllers,3},
+				{hosts,["c0","c1"]}]}]),
     ok=rpc:call(node(),application,start,[?APP],10*5000),
     {pong,_,?APP}=rpc:call(node(),?APP,ping,[],1*5000),	
     ok.
